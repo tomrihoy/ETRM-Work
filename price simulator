@@ -150,24 +150,7 @@ results_autoc_30000 = benchmark('autoc', 30000)
 # random factors which affect runtime performance.
 
         
+df = generate_price_curves(start_date = '2020-01-01', end_date =  '2021-12-31', 
+                           granularity = '30', method='autoc', save_to_csv=True,
+                           output_dir='price_curve_data')
 
-
-
-
-
-
-
-
-# df = generate_price_curves(start_date = '2020-01-01', end_date =  '2021-12-31', 
-#                            granularity = '30', method='autoc', save_to_csv=True,
-#                            output_dir='price_curve_data')
-
-
-
-
-    
-
-
-    
-    
-# %%
