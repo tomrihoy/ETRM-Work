@@ -36,7 +36,7 @@ from datetime import datetime
 from time import perf_counter
 
 
-def generate_price_curves(start_date, end_date, granularity, method='random', 
+def generate_price_curves(start_date, end_date, granularity, method, 
                           lower_bound=70, upper_bound=110, save_to_csv=False,
                            output_dir=None):
     """
@@ -52,6 +52,9 @@ def generate_price_curves(start_date, end_date, granularity, method='random',
         price_curve (dataframe): Dataframe with columns for time and price.
     """
 
+    if method not in [random_curve_generator, numpy_curve_generator, autoc_curve_generator]:
+        raise ValueError('method must be empty or Equal to "random", "numpy" or "autoc"')
+
     # Generate time series
     start_date_dt = pd.to_datetime(start_date, format='%Y-%m-%d')
     end_date_dt = pd.to_datetime(end_date, format='%Y-%m-%d')
@@ -60,97 +63,88 @@ def generate_price_curves(start_date, end_date, granularity, method='random',
 
     len_datapoints = len(datetimes)
 
-    if method =='random':
-        prices = [random.uniform(lower_bound, upper_bound) for _ in range(len_datapoints)]
-        price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])
-    
-    elif method=='numpy':
-        prices = np.random.uniform(low = 70, high = 110,size = len_datapoints)
-        price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])    
-    
-    elif method=='autoc':
-        start_val = (lower_bound+upper_bound)/2
-        prices = np.full(len_datapoints, np.nan)
-
-        prices[0]=start_val
-        for idx in range(len_datapoints-1):
-            start_val = np.random.normal(loc=start_val, scale=5)
-            prices[idx+1]=start_val
-        price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])
-    
-    else:
-        raise ValueError('method must be empty or Equal to "random", "numpy" or "autoc"')
+    price_curve = method(lower_bound, upper_bound, len_datapoints, datetimes)
     
     if save_to_csv:
-        if output_dir:
-            filename = output_dir+'/'+method+str(datetime.now())+'.csv'
-        else:
-            filename = method+str(datetime.now())+'.csv'
-        price_curve.to_csv(filename)
+        save_price_curve(price_curve, output_dir, method)
     else:
         return price_curve
+    
+
+def random_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes):
+    prices = [random.uniform(lower_bound, upper_bound) for _ in range(len_datapoints)]
+    price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])
+    return price_curve
+
+def numpy_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes):
+    prices = np.random.uniform(low = lower_bound, high = upper_bound,size = len_datapoints)
+    price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices']) 
+    return price_curve
+
+def autoc_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes):
+    start_val = (lower_bound+upper_bound)/2
+    prices = np.full(len_datapoints, np.nan)
+
+    prices[0]=start_val
+    for idx in range(len_datapoints-1):
+        val = np.random.normal(loc=prices[idx], scale=0.1)
+        # Prevents random walk from straying out of bounds
+        val = np.clip(val, lower_bound, upper_bound)
+        prices[idx+1]=val
+    price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])
+    return price_curve
+
+def save_price_curve(price_curve, output_dir, method):
+    if output_dir:
+        filename = output_dir+'/'+method.__name__+str(datetime.now())+'.csv'
+    else:
+        filename = method.__name__+str(datetime.now())+'.csv'
+    price_curve.to_csv(filename)
 
 
 
 def benchmark(method, iterations):
+      start = perf_counter()
+      for _ in range(iterations):
+          df = generate_price_curves(
+              start_date='2020-01-01', end_date='2020-01-02',
+              granularity='30', method=method
+          )
+      elapsed = perf_counter() - start
+      return {'method': method.__name__, 'iterations': iterations, 'elapsed': elapsed}
     
-    if method == 'random':
-        start = perf_counter()
-        for iter in range(iterations):
-            df = generate_price_curves(start_date = '2020-01-01', end_date =  '2020-01-02', 
-                           granularity = '30', method='random')
-        end =perf_counter()
-        elapsed=end-start
+
+if __name__=='__main__':
+    results_random_10 = benchmark(random_curve_generator, 10)
+    # results_numpy_10 = benchmark('numpy', 10)
+    # results_autoc_10 = benchmark('autoc', 10)
+    # results_random_100 = benchmark('random', 100)
+    # results_numpy_100 = benchmark('numpy', 100)
+    # results_autoc_100 = benchmark('autoc', 100)
+    # results_random_30000 = benchmark('random', 30000)
+    # results_numpy_30000 = benchmark('numpy', 30000)
+    # results_autoc_30000 = benchmark('autoc', 30000)
+
+    # Results:
+    # Random, 10 iterations: 0.029s
+    # Numpy, 10 iterations: 0.077s
+    # Autoc, 10 iterations: 0.033s
+    # Random, 10 iterations: 0.445s
+    # Numpy, 10 iterations: 0.243s
+    # Autoc, 10 iterations: 0.214s
+    # Random, 10 iterations: 58.973s
+    # Numpy, 10 iterations: 39.678s
+    # Autoc, 10 iterations: 41.655s
+
+    # Answers:
+    # Numpy is fastest for larger numbers of iterations as it uses vectorised 
+    # operations which are quicker to do at scale.
+    # Random seem to be fastest for lower numbers of iterations - not sure 
+    # why this is, perhaps that many of iterations is insufficient for the trends
+    # to show themselves (i.e. law of large numbers) when combined with other 
+    # random factors which affect runtime performance.
+
             
-    elif method == 'numpy':
-        start = perf_counter()
-        for iter in range(iterations):
-            df = generate_price_curves(start_date = '2020-01-01', end_date =  '2020-01-02', 
-                           granularity = '30', method='numpy')
-        end =perf_counter()
-        elapsed=end-start
-            
-    elif method == 'autoc':
-        start = perf_counter()
-        for iter in range(iterations):
-            df = generate_price_curves(start_date = '2020-01-01', end_date =  '2020-01-02', 
-                           granularity = '30', method='autoc')
-        end =perf_counter()
-        elapsed=end-start
-
-    return {'method' : method,'iterations': iterations, 'elapsed': elapsed}
-    
-results_random_10 = benchmark('random', 10)
-results_numpy_10 = benchmark('numpy', 10)
-results_autoc_10 = benchmark('autoc', 10)
-results_random_100 = benchmark('random', 100)
-results_numpy_100 = benchmark('numpy', 100)
-results_autoc_100 = benchmark('autoc', 100)
-results_random_30000 = benchmark('random', 30000)
-results_numpy_30000 = benchmark('numpy', 30000)
-results_autoc_30000 = benchmark('autoc', 30000)
-
-# Results:
-# Random, 10 iterations: 0.029s
-# Numpy, 10 iterations: 0.077s
-# Autoc, 10 iterations: 0.033s
-# Random, 10 iterations: 0.445s
-# Numpy, 10 iterations: 0.243s
-# Autoc, 10 iterations: 0.214s
-# Random, 10 iterations: 58.973s
-# Numpy, 10 iterations: 39.678s
-# Autoc, 10 iterations: 41.655s
-
-# Answers:
-# Numpy is fastest for larger numbers of iterations as it uses vectorised 
-# operations which are quicker to do at scale.
-# Random seem to be fastest for lower numbers of iterations - not sure 
-# why this is, perhaps that many of iterations is insufficient for the trends
-# to show themselves (i.e. law of large numbers) when combined with other 
-# random factors which affect runtime performance.
-
-        
-df = generate_price_curves(start_date = '2020-01-01', end_date =  '2021-12-31', 
-                           granularity = '30', method='autoc', save_to_csv=True,
-                           output_dir='price_curve_data')
+    df = generate_price_curves(start_date = '2020-01-01', end_date =  '2021-12-31', 
+                            granularity = '30', method=autoc_curve_generator)
 
