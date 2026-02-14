@@ -46,10 +46,17 @@ def generate_price_curves(start_date, end_date, granularity, method,
         start_date (str): The start date in 'YYYY-MM-DD' format.
         end_date (str): The end date in 'YYYY-MM-DD' format.
         granularity (int): The granularity of the price curve in minutes.
-        method (str): The method to use for generating prices.
+        method (function): The method to use for generating prices.
+        lower_bound (int): The minimum value of prices in curve
+        upper_bound (int): The maximum value of prices in curve
+        save_to_csv (Bool) (optional): If true save to csv, if false return df
+        output_dir (str) (optional): The output director to save the file in, if blank save in current directory
+        method_kwargs (float) (optional): The std for noraml distribution curve generator
 
     Output:
-        price_curve (dataframe): Dataframe with columns for time and price.
+        price_curve (dataframe): Dataframe of price curve
+        or is save_to_csv=True
+        price curve (csv): csv of price curve
     """
 
     if method not in [random_curve_generator, numpy_curve_generator, autoc_curve_generator]:
