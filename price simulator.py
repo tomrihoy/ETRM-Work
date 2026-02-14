@@ -38,7 +38,7 @@ from time import perf_counter
 
 def generate_price_curves(start_date, end_date, granularity, method, 
                           lower_bound=70, upper_bound=110, save_to_csv=False,
-                           output_dir=None):
+                           output_dir=None, **method_kwargs):
     """
     Generate price curves for a given date range and granularity using the specified method.
     
@@ -63,7 +63,7 @@ def generate_price_curves(start_date, end_date, granularity, method,
 
     len_datapoints = len(datetimes)
 
-    price_curve = method(lower_bound, upper_bound, len_datapoints, datetimes)
+    price_curve = method(lower_bound, upper_bound, len_datapoints, datetimes, **method_kwargs)
     
     if save_to_csv:
         save_price_curve(price_curve, output_dir, method)
@@ -76,18 +76,20 @@ def random_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes):
     price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])
     return price_curve
 
-def numpy_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes):
+def numpy_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes, ban):
+    
     prices = np.random.uniform(low = lower_bound, high = upper_bound,size = len_datapoints)
     price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices']) 
     return price_curve
 
-def autoc_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes):
+def autoc_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes, scale=0.1):
+    
     start_val = (lower_bound+upper_bound)/2
     prices = np.full(len_datapoints, np.nan)
 
     prices[0]=start_val
     for idx in range(len_datapoints-1):
-        val = np.random.normal(loc=prices[idx], scale=0.1)
+        val = np.random.normal(loc=prices[idx], scale=scale)
         # Prevents random walk from straying out of bounds
         val = np.clip(val, lower_bound, upper_bound)
         prices[idx+1]=val
@@ -146,5 +148,5 @@ if __name__=='__main__':
 
             
     df = generate_price_curves(start_date = '2020-01-01', end_date =  '2021-12-31', 
-                            granularity = '30', method=autoc_curve_generator)
+                            granularity = '30', method=numpy_curve_generator, scale=0.2)
 
