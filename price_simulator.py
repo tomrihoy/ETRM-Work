@@ -1,88 +1,163 @@
-import random
-from datetime import datetime
-from time import perf_counter
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
-def generate_price_curves(start_date, end_date, granularity, method, 
-                          lower_bound=70, upper_bound=110, save_to_csv=False,
-                           output_dir=None, **method_kwargs):
-    """
-    Generate price curves for a given date range and granularity using the specified method.
-    """
 
-    # Generate time series
-    start_date_dt = pd.to_datetime(start_date, format='%Y-%m-%d')
-    end_date_dt = pd.to_datetime(end_date, format='%Y-%m-%d')
-    granularity_dt = granularity+'min'
-    datetimes = pd.date_range(start=start_date_dt, end=end_date_dt, freq = granularity_dt)
 
-    len_datapoints = len(datetimes)
+def intraday_curve(
+    sp_to_model,
+    wde_multiplier,
+    a_1=10,
+    a_2=15,
+    sigma_1=4,
+    sigma_2=4,
+    mean_1=16,
+    mean_2=37):
+    ''' Model intraday curve with gtwo gaussian peaks'''
+    peak_1 = a_1 * np.exp(-(sp_to_model - mean_1) ** 2 / (2 * sigma_1 ** 2))
+    peak_2 = a_2 * np.exp(-(sp_to_model - mean_2) ** 2 / (2 * sigma_2 ** 2))
 
-    price_curve = method(lower_bound, upper_bound, len_datapoints, datetimes, **method_kwargs)
+    return wde_multiplier * (peak_1 + peak_2)
+
+
+def seasonality_curve(day_of_year, A=30):
+    ''' Model seasonal baseline variation with cosine'''
+    return A * np.cos((2* np.pi / 365) * day_of_year)
+
+
+def settlement_period(index):
+    '''Convert datetimes to settlement periods'''
+    return (index.hour * 60 + index.minute) // 30 + 1
+
+def week_day_end(
+    index,
+    wkd_mult=1,
+    we_mult=0.6,
+    wkd_sigma_1=4,
+    wkd_sigma_2=4,
+    we_sigma_1=5,
+    we_sigma_2=5):
+    ''' Adjust weekday/weekend peaks and peak spreads'''
     
-    if save_to_csv:
-        save_price_curve(price_curve, output_dir, method)
-    else:
-        return price_curve
+    is_weekend = index.dayofweek.isin([5, 6])
     
-def random_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes):
-    prices = [random.uniform(lower_bound, upper_bound) for _ in range(len_datapoints)]
-    price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])
+    wde_mult = np.where(is_weekend, we_mult, wkd_mult)
+    wde_sigma_1 = np.where(is_weekend, we_sigma_1, wkd_sigma_1)
+    wde_sigma_2 = np.where(is_weekend, we_sigma_2, wkd_sigma_2)
+
+    return wde_mult, wde_sigma_1, wde_sigma_2
+
+def seasonal_sigma(time_series, wde_sigma, sigma_month_list):
+    ''' Adjust peak spreads according to the month'''
+    month_factors = np.array([sigma_month_list[m - 1] for m in time_series.month])
+    return wde_sigma * month_factors
+
+
+def ornstein_uhlenbeck(
+    det_curve,
+    dt=1/48,          
+    theta=4.0,                   
+    sigma_mult=5):
+    ''' OU process for stochastic noise, volatility scales with determinstic price'''
+    
+    n_steps=len(det_curve)
+    x = np.zeros(n_steps)
+    x[0] = det_curve[0]
+    dW = np.random.normal(0, np.sqrt(dt), size=n_steps)
+
+    for t in range(1, n_steps):
+        x[t] = (
+            x[t-1]
+            + theta * (det_curve[t] - x[t-1]) * dt
+            + sigma_mult*det_curve[t]/np.mean(det_curve) * dW[t]
+        )
+
+    return x
+
+
+def generate_price_curve(
+    start_date,
+    end_date,
+    intraday_kwargs=None,
+    seasonality_kwargs=None,
+    weekday_kwargs=None,
+    sigma_month_list_1=None,
+    sigma_month_list_2=None,
+    ou_kwargs=None,
+    base_price=70):
+    ''' Generate synthetic prices with a detrminstic and stochastic component'''
+
+    intraday_kwargs = intraday_kwargs or {}
+    seasonality_kwargs = seasonality_kwargs or {}
+    weekday_kwargs = weekday_kwargs or {}
+    sigma_month_list_1 = sigma_month_list_1 or [1,1,1,1.1,1.2,1.2,1.2,1.2,1.1,1,1,1]
+    sigma_month_list_2 = sigma_month_list_2 or [1,1,1,1.2,1.3,1.3,1.3,1.3,1.2,1.1,1,1]
+    ou_kwargs = ou_kwargs or {}
+    
+    time_series = pd.date_range(start_date, end_date, freq="30min")
+
+    sp_array = settlement_period(time_series)
+
+    wde_multiplier, wde_sigma_1, wde_sigma_2 = week_day_end(
+        time_series,
+        **weekday_kwargs)
+
+    wde_seasonal_sigma_1 = seasonal_sigma(
+        time_series,
+        wde_sigma_1,
+        sigma_month_list_1)
+
+    wde_seasonal_sigma_2 = seasonal_sigma(
+        time_series,
+        wde_sigma_2,
+        sigma_month_list_2)
+
+    itd_curve = intraday_curve(
+        sp_array,
+        wde_multiplier,
+        sigma_1=wde_seasonal_sigma_1,
+        sigma_2=wde_seasonal_sigma_2,
+        **intraday_kwargs)
+
+    ssn_curve = seasonality_curve(
+        time_series.day_of_year,
+        **seasonality_kwargs)
+
+    deterministic_curve = ssn_curve + itd_curve + base_price
+    price_curve=ornstein_uhlenbeck(det_curve=deterministic_curve, **ou_kwargs) 
     return price_curve
 
-def numpy_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes):    
-    prices = np.random.uniform(low = lower_bound, high = upper_bound,size = len_datapoints)
-    price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices']) 
-    return price_curve
 
-def autoc_curve_generator(lower_bound, upper_bound, len_datapoints, datetimes, scale=0.1):
-    
-    start_val = (lower_bound+upper_bound)/2
-    prices = np.full(len_datapoints, np.nan)
+class PowerPrices:
+    '''Generate realistic synthetic wholesale power prices'''
+    def __init__(self,config=None):
+        self.config=config 
 
-    prices[0]=start_val
-    for idx in range(len_datapoints-1):
-        val = np.random.normal(loc=prices[idx], scale=scale)
-        # Prevents random walk from straying out of bounds
-        val = np.clip(val, lower_bound, upper_bound)
-        prices[idx+1]=val
-    price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])
-    return price_curve
 
-def ornstein_ulenbeck(lower_bound, upper_bound, len_datapoints, datetimes, scale=0.1, mu=None, theta=0.1):
-    if not mu:
-        mu =(upper_bound-lower_bound)/2
-    prices = np.full(len_datapoints, np.nan)
-    prices[0]=mu
-    diff = datetimes.to_series().diff()
-    delta_T = diff.mode()[0] / pd.Timedelta(hours=1)
-    for t in range(1,len_datapoints):
-        dW = np.sqrt(delta_T) * np.random.normal(0, 1)
-        prices[t] = prices[t-1] + theta * (mu - prices[t-1]) * delta_T + scale * dW
-    price_curve=pd.DataFrame(zip(datetimes, prices), columns=['Datetime', 'Prices'])
-    return price_curve
+    import copy
 
-def save_price_curve(price_curve, output_dir, method):
-    if output_dir:
-        filename = output_dir+'/'+method.__name__+str(datetime.now())+'.csv'
-    else:
-        filename = method.__name__+str(datetime.now())+'.csv'
-    price_curve.to_csv(filename)
+    def deep_update(default, override):
+        result = copy.deepcopy(default)
 
-def benchmark(method, iterations):
-      start = perf_counter()
-      for _ in range(iterations):
-          df = generate_price_curves(
-              start_date='2020-01-01', end_date='2020-01-02',
-              granularity='30', method=method
-          )
-      elapsed = perf_counter() - start
-      return {'method': method.__name__, 'iterations': iterations, 'elapsed': elapsed}
-    
-if __name__=='__main__':
-            
-    df = generate_price_curves(start_date = '2020-01-01', end_date =  '2021-12-31', 
-                            granularity = '30', method=ornstein_ulenbeck, scale=0.2, theta=0.001)
-    df['Prices'].plot()
+        for k, v in override.items():
+            if isinstance(v, dict) and k in result:
+                result[k] = deep_update(result[k], v)
+            else:
+                result[k] = v
 
+        return result
+
+
+
+
+if __name__ == "__main__":
+
+    x = generate_price_curve(
+        start_date="2024-01-04 00:00:00",
+        end_date="2024-01-06 02:00:00", ou_kwargs={'sigma_mult':5,'theta':7})
+
+
+    plt.figure(figsize=(12,5))
+    plt.plot(x)
+    plt.title("Synthetic GB Price Curve")
+    plt.show()
