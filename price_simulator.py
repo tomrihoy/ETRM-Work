@@ -43,7 +43,6 @@ class PowerPrices:
         """Initialize class and merge user config with defaults"""
         self.config = self.deep_update(self.DEFAULT_CONFIG, config or {})
         self.curve_dict={}
-        self.curve_analysis_dict={}
 
     @staticmethod
     def deep_update(default, override):
@@ -200,7 +199,7 @@ class PowerPrices:
                          'std':std_val,
                          'median':median_val,
                          'mean':mean_val}
-            self.curve_analysis_dict[key] = stat_dict
+            return stat_dict
     
 if __name__=='__main__':
     pp = PowerPrices()
@@ -209,8 +208,8 @@ if __name__=='__main__':
         "ou": {"theta": 7, "sigma_mult": 5},
         "intraday": {"a_1": 12}
     }
-    pp.generate_price_curve('2026-01-01', '2026-01-08')
-    pp.generate_price_curve('2026-01-01', '2026-01-09')
+    pp.generate_price_curve('2026-01-01', '2026-01-08', config=custom_cfg)
+    pp.generate_price_curve('2026-01-01', '2026-01-09', config=custom_cfg)
     pp.plot_curves()
     
    
