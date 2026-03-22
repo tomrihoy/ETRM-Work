@@ -1,4 +1,7 @@
 .venv/
 .DS_Store
-price_curve_data/*.csv
 .DS_Store
+
+
+!price_curve_data/.gitkeep
+price_curve_data/*.csv
