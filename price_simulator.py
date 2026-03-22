@@ -4,10 +4,7 @@ import matplotlib.pyplot as plt
 import copy
 from datetime import datetime
 from pathlib import Path
-<<<<<<< HEAD
 import matplotlib.dates as mdates
-=======
->>>>>>> 5ae7e8094a477f973faf392f8a08aa277328ca3e
 
 
 
@@ -45,10 +42,7 @@ class PowerPrices:
     def __init__(self, config=None):
         """Initialize class and merge user config with defaults"""
         self.config = self.deep_update(self.DEFAULT_CONFIG, config or {})
-<<<<<<< HEAD
         self.curve_dict={}
-=======
->>>>>>> 5ae7e8094a477f973faf392f8a08aa277328ca3e
 
     @staticmethod
     def deep_update(default, override):
@@ -77,38 +71,26 @@ class PowerPrices:
 
     @staticmethod
     def seasonal_sigma(time_series, wde_sigma, sigma_month_list):
-<<<<<<< HEAD
         '''Vary spread of two daily peaks by month.'''
-=======
->>>>>>> 5ae7e8094a477f973faf392f8a08aa277328ca3e
         month_factors = np.array([sigma_month_list[m-1] for m in time_series.month])
         return wde_sigma * month_factors
 
     @staticmethod
     def intraday_curve(sp_to_model, wde_multiplier, intraday_cfg, sigma_1, sigma_2):
-<<<<<<< HEAD
         '''Model intraday curve with gaussian peaks.'''
-=======
->>>>>>> 5ae7e8094a477f973faf392f8a08aa277328ca3e
         peak_1 = intraday_cfg['a_1'] * np.exp(-(sp_to_model - intraday_cfg['mean_1'])**2 / (2 * sigma_1**2))
         peak_2 = intraday_cfg['a_2'] * np.exp(-(sp_to_model - intraday_cfg['mean_2'])**2 / (2 * sigma_2**2))
         return wde_multiplier * (peak_1 + peak_2)
 
     @staticmethod
     def seasonality_curve(day_of_year, seasonality_cfg):
-<<<<<<< HEAD
         '''Seasonal component of curve modelled by cosine.'''
-=======
->>>>>>> 5ae7e8094a477f973faf392f8a08aa277328ca3e
         return seasonality_cfg['A'] * np.cos((2*np.pi / 365) * day_of_year)
 
     @staticmethod
     def ornstein_uhlenbeck(det_curve, ou_cfg):
-<<<<<<< HEAD
         '''Stochastic mean reverting component of price curve. Volatility
            is scaled to detrminstic curve size.'''
-=======
->>>>>>> 5ae7e8094a477f973faf392f8a08aa277328ca3e
         n_steps = len(det_curve)
         x = np.zeros(n_steps)
         x[0] = det_curve[0]
@@ -120,7 +102,6 @@ class PowerPrices:
         return x
     
     @staticmethod
-<<<<<<< HEAD
     def save_to_csv(df, filepath=None,filename=None):    
         '''Save power curves to csv.'''
         full_file_path=PowerPrices.generate_filepath(filepath, filename)
@@ -146,21 +127,6 @@ class PowerPrices:
 
     def generate_price_curve(self, start_date, end_date, save_to_csv=False, filepath=None, filename=None):
         '''Generate stochastic price curve'''
-=======
-    def save_to_csv(df, filepath,filename=None):
-        
-        if filename is None:
-            current_time=datetime.now()
-            filename=f'{current_time.year}_{current_time.month}_{current_time.day}_{current_time.hour}_{current_time.minute}_{current_time.second}_synthetic_prices.csv'
-        if filepath is not None:
-            full_file_path=Path(filepath)/filename
-        else:
-            full_file_path=filename
-
-        df.to_csv(full_file_path)
-
-    def generate_price_curve(self, start_date, end_date, save_to_csv=False, filepath=None, filename=None):
->>>>>>> 5ae7e8094a477f973faf392f8a08aa277328ca3e
         ts = pd.date_range(start_date, end_date, freq="30min")
         sp_array = self.settlement_period(ts)
         
@@ -185,7 +151,6 @@ class PowerPrices:
 
         prices_df = pd.DataFrame(list(zip(ts, price_curve)), columns=['datetime', 'power_prices'])
         
-<<<<<<< HEAD
         if save_to_csv:    
             self.save_to_csv(prices_df, filepath, filename)
 
@@ -220,7 +185,7 @@ class PowerPrices:
         plt.show()
 
     def analyse_curves(self):
-        '''Create an attirbute dictionary of the prices curves that have
+        '''Create an attribute dictionary of the prices curves that have
             been instantiated.'''
         for key in self.curve_dict.keys():
             power_prices = self.curve_dict[key]
@@ -237,27 +202,18 @@ class PowerPrices:
             return stat_dict
     
 if __name__=='__main__':
-    pp = PowerPrices()
-    prices = pp.generate_price_curve('2026-01-01', '2026-01-08', save_to_csv=False, filepath='price_curve_data')
     custom_cfg = {
-        "ou": {"theta": 7, "sigma_mult": 5},
-        "intraday": {"a_1": 12}
+    "ou": {"theta": 7, "sigma_mult": 5},
+    "intraday": {"a_1": 12}
     }
-    pp.generate_price_curve('2026-01-01', '2026-01-08', config=custom_cfg)
-    pp.generate_price_curve('2026-01-01', '2026-01-09', config=custom_cfg)
+    pp = PowerPrices(config=custom_cfg)
+    prices = pp.generate_price_curve('2026-01-01', 
+                                     '2026-01-08', 
+                                     save_to_csv=True, 
+                                     filepath='price_curve_data')
+
+    pp.generate_price_curve('2026-01-01', '2026-01-08')
+    pp.generate_price_curve('2026-01-01', '2026-01-09')
     pp.plot_curves()
     
    
-=======
-        if save_to_csv:
-            
-            self.save_to_csv(prices_df, filepath, filename)
-
-        return prices_df
-    
-if __name__=='__main__':
-    pp = PowerPrices()
-    prices = pp.generate_price_curve('2026-01-01', '2026-01-08', save_to_csv=True, filepath='price_curve_data')
-    pp2 = 
-    prices = pp.generate_price_curve('2026-01-01', '2026-01-08', save_to_csv=True, filepath='price_curve_data')
->>>>>>> 5ae7e8094a477f973faf392f8a08aa277328ca3e
