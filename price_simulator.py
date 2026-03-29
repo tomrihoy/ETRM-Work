@@ -185,7 +185,7 @@ class PowerPrices:
         plt.show()
 
     def analyse_curves(self):
-        '''Create an attirbute dictionary of the prices curves that have
+        '''Create an attribute dictionary of the prices curves that have
             been instantiated.'''
         for key in self.curve_dict.keys():
             power_prices = self.curve_dict[key]
@@ -202,14 +202,18 @@ class PowerPrices:
             return stat_dict
     
 if __name__=='__main__':
-    pp = PowerPrices()
-    prices = pp.generate_price_curve('2026-01-01', '2026-01-08', save_to_csv=False, filepath='price_curve_data')
     custom_cfg = {
-        "ou": {"theta": 7, "sigma_mult": 5},
-        "intraday": {"a_1": 12}
+    "ou": {"theta": 7, "sigma_mult": 5},
+    "intraday": {"a_1": 12}
     }
-    pp.generate_price_curve('2026-01-01', '2026-01-08', config=custom_cfg)
-    pp.generate_price_curve('2026-01-01', '2026-01-09', config=custom_cfg)
+    pp = PowerPrices(config=custom_cfg)
+    prices = pp.generate_price_curve('2026-01-01', 
+                                     '2026-01-08', 
+                                     save_to_csv=True, 
+                                     filepath='price_curve_data')
+
+    pp.generate_price_curve('2026-01-01', '2026-01-08')
+    pp.generate_price_curve('2026-01-01', '2026-01-09')
     pp.plot_curves()
     
    
