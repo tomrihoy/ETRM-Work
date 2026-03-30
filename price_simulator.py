@@ -2,13 +2,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import copy
-from datetime import datetime, date
+from datetime import datetime
 from pathlib import Path
 import matplotlib.dates as mdates
-from typing import Tuple, Dict, Union, Optional
-import typer 
-from datetime import datetime, date
-from pandas import Timestamp
+from typing import Tuple, Dict, Optional
 
 
 
@@ -44,7 +41,7 @@ class PowerPrices:
         "base_price": 70
     }
     
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: dict| None = None) -> None:
         """Initialize class and merge user config with defaults"""
         self.config = self.deep_update(self.DEFAULT_CONFIG, config or {})
         self.curve_dict: dict[str, pd.DataFrame] = {}
@@ -218,9 +215,7 @@ class PowerPrices:
 if __name__=='__main__':
     custom_cfg = {
     "ou": {"theta": 7, "sigma_mult": 5},
-    "intraday": {"a_1": 12}
-    "ou": {"theta": 7, "sigma_mult": 5},
-    "intraday": {"a_1": 12}
+    "intraday": {"a_1": 12},
     }
     pp = PowerPrices(config=custom_cfg)
     prices = pp.generate_price_curve('2026-01-01', 
@@ -229,15 +224,15 @@ if __name__=='__main__':
                                      filepath='price_curve_data')
 
     pp.generate_price_curve('2026-01-01', '2026-01-08')
-    pp.generate_price_curve('2026-01-01', '2026-01-09')
-    pp = PowerPrices(config=custom_cfg)
-    prices = pp.generate_price_curve('2026-01-01', 
-                                     '2026-01-08', 
-                                     save_to_csv=True, 
-                                     filepath='price_curve_data')
+    # pp.generate_price_curve('2026-01-01', '2026-01-09')
+    # pp = PowerPrices(config=custom_cfg)
+    # prices = pp.generate_price_curve('2026-01-01', 
+    #                                  '2026-01-08', 
+    #                                  save_to_csv=True, 
+    #                                  filepath='price_curve_data')
 
-    pp.generate_price_curve('2026-01-01', '2026-01-08')
-    pp.generate_price_curve('2026-01-01', '2026-01-09')
+    # pp.generate_price_curve('2026-01-01', '2026-01-08')
+    # pp.generate_price_curve('2026-01-01', '2026-01-09')
     pp.plot_curves()
     
    

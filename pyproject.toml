@@ -8,5 +8,6 @@ dependencies = [
     "matplotlib>=3.10.8",
     "numpy>=2.4.4",
     "pandas>=3.0.1",
+    "ruff>=0.15.8",
     "typer>=0.24.1",
 ]
