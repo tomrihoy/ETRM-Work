@@ -1,18 +1,16 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import copy
 from datetime import datetime
 from pathlib import Path
+
 import matplotlib.dates as mdates
-from typing import Tuple, Dict, Optional
-
-
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 
 class PowerPrices:
     """Generate realistic synthetic wholesale power prices"""
-    
+
     DEFAULT_CONFIG = {
         "intraday": {
             "a_1": 10,
@@ -40,7 +38,7 @@ class PowerPrices:
         },
         "base_price": 70
     }
-    
+
     def __init__(self, config: dict| None = None) -> None:
         """Initialize class and merge user config with defaults"""
         self.config = self.deep_update(self.DEFAULT_CONFIG, config or {})
@@ -48,7 +46,7 @@ class PowerPrices:
 
 
     @staticmethod
-    def deep_update(default, override: Dict)-> Dict:
+    def deep_update(default, override: dict)-> dict:
         """Recursively update default config with override dict"""
         result = copy.deepcopy(default)
         for k, v in override.items():
@@ -63,7 +61,7 @@ class PowerPrices:
         """Convert datetimes to settlement periods"""
         return (index.hour * 60 + index.minute) // 30 + 1
 
-    def week_day_end(self, index: pd.DatetimeIndex)->Tuple[np.ndarray,np.ndarray,np.ndarray]:
+    def week_day_end(self, index: pd.DatetimeIndex)->tuple[np.ndarray,np.ndarray,np.ndarray]:
         """Adjust weekday/weekend multipliers and sigmas"""
         weekday_cfg = self.config['weekday']
         is_weekend = index.dayofweek.isin([5,6])
@@ -71,14 +69,14 @@ class PowerPrices:
         wde_sigma_1 = np.where(is_weekend, weekday_cfg['we_sigma_1'], weekday_cfg['wkd_sigma_1'])
         wde_sigma_2 = np.where(is_weekend, weekday_cfg['we_sigma_2'], weekday_cfg['wkd_sigma_2'])
         return wde_mult, wde_sigma_1, wde_sigma_2
-    
+
     def seasonal_sigma(self,time_series: pd.DatetimeIndex, wde_sigma: np.ndarray, sigma_month_list_key: str)->np.ndarray:
         '''Vary spread of two daily peaks by month.'''
         sigma_month_list = self.config[sigma_month_list_key]
         month_factors = np.array([sigma_month_list[m-1] for m in time_series.month])
         return wde_sigma * month_factors
 
-    
+
     def intraday_curve(self, sp_to_model: pd.Index, wde_multiplier: np.ndarray, sigma_1: np.ndarray, sigma_2: np.ndarray)->pd.Index:
         '''Model intraday curve with gaussian peaks.'''
         intraday_cfg=self.config['intraday']
@@ -104,16 +102,16 @@ class PowerPrices:
                     + ou_cfg['theta'] * (det_curve[t]-x[t-1]) * ou_cfg['dt']
                     + ou_cfg['sigma_mult'] * det_curve[t]/np.mean(det_curve) * dW[t])
         return x
-    
+
     @staticmethod
-    def save_to_csv(df: pd.DataFrame, filepath: Optional[str] = None, filename: Optional[str] = None) -> None:
-  
+    def save_to_csv(df: pd.DataFrame, filepath: str | None = None, filename: str | None = None) -> None:
+
         '''Save power curves to csv.'''
         full_file_path=PowerPrices.generate_filepath(filepath, filename)
         df.to_csv(full_file_path)
 
     @staticmethod
-    def generate_filepath(filepath: Optional[str], filename: Optional[str]) -> Path:
+    def generate_filepath(filepath: str | None, filename: str | None) -> Path:
         '''Generate filepath for csv saving'''
         filename = PowerPrices.generate_filename(filename)
         if filepath is not None:
@@ -123,7 +121,7 @@ class PowerPrices:
         return full_file_path
 
     @staticmethod
-    def generate_filename(filename: Optional[str]) -> str: 
+    def generate_filename(filename: str | None) -> str:
         '''Generate filename for saving curve to csv and as a key for a dictionary'''
         if filename is None:
             current_time=datetime.now()
@@ -134,42 +132,42 @@ class PowerPrices:
                          start_date: str,
                          end_date: str,
                          save_to_csv: bool = False,
-                         filepath: Optional[str] = None,
-                         filename: Optional[str] = None) -> pd.DataFrame:
+                         filepath: str | None = None,
+                         filename: str | None = None) -> pd.DataFrame:
         '''Generate stochastic price curve'''
         ts = pd.date_range(start_date, end_date, freq="30min")
         sp_array = self.settlement_period(ts)
-        
+
         # weekday/weekend adjustments
         wde_mult, wde_sigma_1, wde_sigma_2 = self.week_day_end(ts)
         wde_seasonal_sigma_1 = self.seasonal_sigma(ts, wde_sigma_1, 'sigma_month_list_1')
         wde_seasonal_sigma_2 = self.seasonal_sigma(ts, wde_sigma_2, 'sigma_month_list_2')
-        
+
         # intraday curve
         itd_curve = self.intraday_curve(sp_array, wde_mult, wde_seasonal_sigma_1, wde_seasonal_sigma_2)
-        
+
         # seasonality
         ssn_curve = self.seasonality_curve(ts.day_of_year)
-        
-        # deterministic 
+
+        # deterministic
         det_curve = ssn_curve + itd_curve + self.config['base_price']
-        
+
         # add stochasticity
         price_curve = self.ornstein_uhlenbeck(det_curve)
-        
+
         # construct dataframe
 
         prices_df = pd.DataFrame(list(zip(ts, price_curve)), columns=['datetime', 'power_prices'])
-        
-        if save_to_csv:    
+
+        if save_to_csv:
             self.save_to_csv(prices_df, filepath, filename)
 
-        curve_name = PowerPrices.generate_filename(filename).removesuffix('.csv')     
+        curve_name = PowerPrices.generate_filename(filename).removesuffix('.csv')
         self.curve_dict[curve_name] = prices_df
 
         return prices_df
-    
-    def plot_curves(self, curve_to_plot: Optional[str] = None) -> None:
+
+    def plot_curves(self, curve_to_plot: str | None = None) -> None:
         '''Plot power prices stored in curve_dict. The x coordinates are auto formatted.'''
         fig, ax = plt.subplots()
         if curve_to_plot is None:
@@ -179,7 +177,7 @@ class PowerPrices:
                 df_length.append(len(prices))
                 ax.plot(prices['datetime'], prices['power_prices'], label=key)
 
-        
+
         else:
             prices = self.curve_dict[curve_to_plot]
             ax.plot(prices['datetime'], prices['power_prices'], label=curve_to_plot)
@@ -211,31 +209,31 @@ class PowerPrices:
             key: self._compute_stats(df['power_prices'])
             for key, df in self.curve_dict.items()
         }
-    
+
 if __name__=='__main__':
     custom_cfg = {
     "ou": {"theta": 7, "sigma_mult": 5},
     "intraday": {"a_1": 12},
     }
     pp = PowerPrices(config=custom_cfg)
-    prices = pp.generate_price_curve('2026-01-01', 
-                                     '2026-01-08', 
-                                     save_to_csv=True, 
+    prices = pp.generate_price_curve('2026-01-01',
+                                     '2026-01-08',
+                                     save_to_csv=True,
                                      filepath='price_curve_data')
 
     pp.generate_price_curve('2026-01-01', '2026-01-08')
     # pp.generate_price_curve('2026-01-01', '2026-01-09')
     # pp = PowerPrices(config=custom_cfg)
-    # prices = pp.generate_price_curve('2026-01-01', 
-    #                                  '2026-01-08', 
-    #                                  save_to_csv=True, 
+    # prices = pp.generate_price_curve('2026-01-01',
+    #                                  '2026-01-08',
+    #                                  save_to_csv=True,
     #                                  filepath='price_curve_data')
 
     # pp.generate_price_curve('2026-01-01', '2026-01-08')
     # pp.generate_price_curve('2026-01-01', '2026-01-09')
     pp.plot_curves()
-    
-   
 
-    
-   
+
+
+
+
