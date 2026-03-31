@@ -1,8 +1,9 @@
 # cli.py
-import typer
-from price_simulator import PowerPrices
 from enum import StrEnum
-from typing import Optional
+
+import typer
+
+from price_simulator import PowerPrices
 
 app = typer.Typer(help="Generate synthetic wholesale power prices")
 
@@ -16,8 +17,8 @@ def generate(
     start_date:  str           = typer.Argument(...,                    help="Start date e.g. 2026-01-01"),
     end_date:    str           = typer.Argument(...,                    help="End date e.g. 2026-12-31"),
     output:      OutputFormat  = typer.Option(OutputFormat.MEMORY,      help="Output format"),
-    filepath:    Optional[str] = typer.Option(None,                     help="Folder to save CSV"),
-    filename:    Optional[str] = typer.Option(None,                     help="Custom filename"),
+    filepath:    str | None = typer.Option(None,                     help="Folder to save CSV"),
+    filename:    str | None = typer.Option(None,                     help="Custom filename"),
 ) -> None:
     """Generate a synthetic power price curve."""
     pp = PowerPrices()
@@ -29,7 +30,7 @@ def generate(
 def plot(
     start_date: str            = typer.Argument(..., help="Start date"),
     end_date:   str            = typer.Argument(..., help="End date"),
-    curve:      Optional[str]  = typer.Option(None,  help="Specific curve to plot"),
+    curve:      str | None  = typer.Option(None,  help="Specific curve to plot"),
 ) -> None:
     """Generate and plot a price curve."""
     pp = PowerPrices()
