@@ -223,15 +223,15 @@ if __name__=='__main__':
                                      filepath='price_curve_data')
 
     pp.generate_price_curve('2026-01-01', '2026-01-08')
-    # pp.generate_price_curve('2026-01-01', '2026-01-09')
-    # pp = PowerPrices(config=custom_cfg)
-    # prices = pp.generate_price_curve('2026-01-01',
-    #                                  '2026-01-08',
-    #                                  save_to_csv=True,
-    #                                  filepath='price_curve_data')
+    pp.generate_price_curve('2026-01-01', '2026-01-09')
+    pp = PowerPrices(config=custom_cfg)
+    prices = pp.generate_price_curve('2026-01-01',
+                                     '2026-01-08',
+                                     save_to_csv=True,
+                                     filepath='price_curve_data')
 
-    # pp.generate_price_curve('2026-01-01', '2026-01-08')
-    # pp.generate_price_curve('2026-01-01', '2026-01-09')
+    pp.generate_price_curve('2026-01-01', '2026-01-08')
+    pp.generate_price_curve('2026-01-01', '2026-01-09')
     pp.plot_curves()
 
 
