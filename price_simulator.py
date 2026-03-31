@@ -1,11 +1,13 @@
 import copy
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import typer
 
 
 class PowerPrices:
@@ -39,14 +41,16 @@ class PowerPrices:
         "base_price": 70
     }
 
-    def __init__(self, config: dict| None = None) -> None:
+    def __init__(self, config: dict[str, Any]| None = None) -> None:
         """Initialize class and merge user config with defaults"""
         self.config = self.deep_update(self.DEFAULT_CONFIG, config or {})
         self.curve_dict: dict[str, pd.DataFrame] = {}
 
 
     @staticmethod
-    def deep_update(default, override: dict)-> dict:
+    def deep_update(
+    default: dict[str, Any],
+    override: dict[str, Any]) -> dict[str, Any]:
         """Recursively update default config with override dict"""
         result = copy.deepcopy(default)
         for k, v in override.items():
@@ -57,9 +61,9 @@ class PowerPrices:
         return result
 
     @staticmethod
-    def settlement_period(index: pd.DatetimeIndex)->pd.Index:
+    def settlement_period(index: pd.DatetimeIndex)->np.ndarray:
         """Convert datetimes to settlement periods"""
-        return (index.hour * 60 + index.minute) // 30 + 1
+        return ((index.hour * 60 + index.minute) // 30 + 1).to_numpy()
 
     def week_day_end(self, index: pd.DatetimeIndex)->tuple[np.ndarray,np.ndarray,np.ndarray]:
         """Adjust weekday/weekend multipliers and sigmas"""
@@ -77,17 +81,17 @@ class PowerPrices:
         return wde_sigma * month_factors
 
 
-    def intraday_curve(self, sp_to_model: pd.Index, wde_multiplier: np.ndarray, sigma_1: np.ndarray, sigma_2: np.ndarray)->pd.Index:
+    def intraday_curve(self, sp_to_model: np.ndarray, wde_multiplier: np.ndarray, sigma_1: np.ndarray, sigma_2: np.ndarray)->np.ndarray:
         '''Model intraday curve with gaussian peaks.'''
         intraday_cfg=self.config['intraday']
         peak_1 = intraday_cfg['a_1'] * np.exp(-(sp_to_model - intraday_cfg['mean_1'])**2 / (2 * sigma_1**2))
         peak_2 = intraday_cfg['a_2'] * np.exp(-(sp_to_model - intraday_cfg['mean_2'])**2 / (2 * sigma_2**2))
         return wde_multiplier * (peak_1 + peak_2)
 
-    def seasonality_curve(self,day_of_year: pd.Index)->pd.Index:
+    def seasonality_curve(self,day_of_year: pd.Index)->np.ndarray:
         '''Seasonal component of curve modelled by cosine.'''
         seasonality_cfg=self.config['seasonality']
-        return seasonality_cfg['A'] * np.cos((2*np.pi / 365) * day_of_year)
+        return (seasonality_cfg['A'] * np.cos((2*np.pi / 365) * day_of_year)).to_numpy()
 
     def ornstein_uhlenbeck(self, det_curve: pd.Index)->np.ndarray:
         '''Stochastic mean reverting component of price curve. Volatility
@@ -96,11 +100,11 @@ class PowerPrices:
         n_steps = len(det_curve)
         x = np.zeros(n_steps)
         x[0] = det_curve[0]
-        dW = np.random.normal(0, np.sqrt(ou_cfg['dt']), size=n_steps)
+        dw = np.random.normal(0, np.sqrt(ou_cfg['dt']), size=n_steps)
         for t in range(1, n_steps):
             x[t] = (x[t-1]
                     + ou_cfg['theta'] * (det_curve[t]-x[t-1]) * ou_cfg['dt']
-                    + ou_cfg['sigma_mult'] * det_curve[t]/np.mean(det_curve) * dW[t])
+                    + ou_cfg['sigma_mult'] * det_curve[t]/np.mean(det_curve) * dw[t])
         return x
 
     @staticmethod
@@ -157,7 +161,7 @@ class PowerPrices:
 
         # construct dataframe
 
-        prices_df = pd.DataFrame(list(zip(ts, price_curve)), columns=['datetime', 'power_prices'])
+        prices_df = pd.DataFrame(list(zip(ts, price_curve, strict=True)), columns=['datetime', 'power_prices'])
 
         if save_to_csv:
             self.save_to_csv(prices_df, filepath, filename)
@@ -171,10 +175,7 @@ class PowerPrices:
         '''Plot power prices stored in curve_dict. The x coordinates are auto formatted.'''
         fig, ax = plt.subplots()
         if curve_to_plot is None:
-            df_length = []
-            for key in self.curve_dict.keys():
-                prices = self.curve_dict[key]
-                df_length.append(len(prices))
+            for key, prices in self.curve_dict.items():
                 ax.plot(prices['datetime'], prices['power_prices'], label=key)
 
 
@@ -193,7 +194,7 @@ class PowerPrices:
         plt.show()
 
     @staticmethod
-    def _compute_stats(prices: pd.Series) -> dict:
+    def _compute_stats(prices: pd.Series) -> dict[str,float]:
         '''Compute summary statistics for a single price series.'''
         return {
             'max':    prices.max(),
@@ -203,7 +204,7 @@ class PowerPrices:
             'mean':   prices.mean()
         }
 
-    def analyse_curves(self) -> dict:
+    def analyse_curves(self) -> dict[str, dict[str, float]]:
         '''Return summary statistics for all stored price curves.'''
         return {
             key: self._compute_stats(df['power_prices'])
