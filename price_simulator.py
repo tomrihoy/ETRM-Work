@@ -1,5 +1,4 @@
 import copy
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from utils import save_to_csv, generate_filename
+from utils import generate_filename, save_to_csv
+
 
 def compute_stats(prices: pd.Series) -> dict[str,float]:
     '''Compute summary statistics for a single price series.'''
@@ -97,7 +97,7 @@ class PowerPrices:
                 result[k] = v
         return result
 
-    
+
     def week_day_end(self, index: pd.DatetimeIndex)->tuple[np.ndarray,np.ndarray,np.ndarray]:
         """Adjust weekday/weekend multipliers and sigmas"""
         weekday_cfg = self.config['weekday']
@@ -176,7 +176,7 @@ class PowerPrices:
 
         curve_name = generate_filename(filename).removesuffix('.csv')
         self.curve_dict[curve_name] = prices_df
-        
+
         return prices_df
 
     def analyse_curves(self) -> dict[str, dict[str, float]]:

@@ -1,8 +1,7 @@
-import typer
 import pandas as pd
-from price_simulator import PowerPrices, plot_curves
-from utils import save_to_csv, generate_filename
+import typer
 
+from price_simulator import PowerPrices, compute_stats, plot_curves
 
 app = typer.Typer(help="Generate synthetic wholesale power prices")
 
@@ -32,9 +31,8 @@ def analyse(
     filepath: str = typer.Argument(..., help="Path to a saved price curve CSV"),
 ) -> None:
     """Analyse statistics from a saved price curve CSV."""
-    import pandas as pd
     df = pd.read_csv(filepath)
-    stats = PowerPrices._compute_stats(df['power_prices'])
+    stats = compute_stats(df['power_prices'])
     for stat, value in stats.items():
         typer.echo(f"  {stat}: {value:.2f}")
 
