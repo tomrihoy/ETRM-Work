@@ -8,7 +8,43 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from utils import save_to_csv, generate_filepath, generate_filename
+from utils import save_to_csv, generate_filename
+
+def compute_stats(prices: pd.Series) -> dict[str,float]:
+    '''Compute summary statistics for a single price series.'''
+    return {
+        'max':    prices.max(),
+        'min':    prices.min(),
+        'std':    prices.std(),
+        'median': prices.median(),
+        'mean':   prices.mean()
+    }
+
+
+def settlement_period(index: pd.DatetimeIndex)->np.ndarray:
+    """Convert datetimes to settlement periods"""
+    return ((index.hour * 60 + index.minute) // 30 + 1).to_numpy()
+
+def plot_curves(curve_to_plot: str | dict):
+    '''Plot power prices stored in class curve_dict or via a path. The x coordinates are auto formatted.'''
+    fig, ax = plt.subplots()
+    if isinstance(curve_to_plot, dict):
+        for key, prices in curve_to_plot.items():
+            ax.plot(prices['datetime'], prices['power_prices'], label=key)
+    if isinstance(curve_to_plot, str):
+        prices = pd.read_csv(curve_to_plot)
+        label = Path(curve_to_plot).stem
+        ax.plot(prices['datetime'], prices['power_prices'], label=label)
+    locator = mdates.AutoDateLocator()
+    formatter = mdates.AutoDateFormatter(locator)
+
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Price (£/MWh)')
+    fig.autofmt_xdate()
+    ax.legend()
+    plt.show()
 
 
 class PowerPrices:
@@ -61,11 +97,7 @@ class PowerPrices:
                 result[k] = v
         return result
 
-    @staticmethod
-    def settlement_period(index: pd.DatetimeIndex)->np.ndarray:
-        """Convert datetimes to settlement periods"""
-        return ((index.hour * 60 + index.minute) // 30 + 1).to_numpy()
-
+    
     def week_day_end(self, index: pd.DatetimeIndex)->tuple[np.ndarray,np.ndarray,np.ndarray]:
         """Adjust weekday/weekend multipliers and sigmas"""
         weekday_cfg = self.config['weekday']
@@ -108,31 +140,6 @@ class PowerPrices:
                     + ou_cfg['sigma_mult'] * det_curve[t]/np.mean(det_curve) * dw[t])
         return x
 
-    # @staticmethod
-    # def save_to_csv(df: pd.DataFrame, filepath: str | None = None, filename: str | None = None) -> None:
-
-    #     '''Save power curves to csv.'''
-    #     full_file_path=generate_filepath(filepath, filename)
-    #     df.to_csv(full_file_path)
-
-    # @staticmethod
-    # def generate_filepath(filepath: str | None, filename: str | None) -> Path:
-    #     '''Generate filepath for csv saving'''
-    #     filename = PowerPrices.generate_filename(filename)
-    #     if filepath is not None:
-    #         full_file_path=Path(filepath)/filename
-    #     else:
-    #         full_file_path=Path(filename)
-    #     return full_file_path
-
-    # @staticmethod
-    # def generate_filename(filename: str | None) -> str:
-    #     '''Generate filename for saving curve to csv and as a key for a dictionary'''
-    #     if filename is None:
-    #         current_time=datetime.now()
-    #         filename=f'{current_time.year}_{current_time.month}_{current_time.day}_{current_time.hour}_{current_time.minute}_{current_time.second}_{current_time.microsecond}_synthetic_prices.csv'
-    #     return filename
-
     def generate_price_curve(self,
                          start_date: str,
                          end_date: str,
@@ -141,7 +148,7 @@ class PowerPrices:
                          filename: str | None = None) -> pd.DataFrame:
         '''Generate stochastic price curve'''
         ts = pd.date_range(start_date, end_date, freq="30min")
-        sp_array = self.settlement_period(ts)
+        sp_array = settlement_period(ts)
 
         # weekday/weekend adjustments
         wde_mult, wde_sigma_1, wde_sigma_2 = self.week_day_end(ts)
@@ -172,62 +179,10 @@ class PowerPrices:
         
         return prices_df
 
-    @staticmethod
-    def cli_plot_curve(curve_path: str):
-        ''' Plot power curve stored in csv file. '''
-        price_df = pd.read_csv(curve_path)
-        fig, ax = plt.subplots()
-        filename = Path(curve_path).stem
-        ax.plot(price_df['datetime'], price_df['power_prices'], label=filename)
-        locator = mdates.AutoDateLocator()
-        formatter = mdates.AutoDateFormatter(locator)
-
-        ax.xaxis.set_major_locator(locator)
-        ax.xaxis.set_major_formatter(formatter)
-        ax.set_xlabel('Date')
-        ax.set_ylabel('Price (£/MWh)')
-        fig.autofmt_xdate()
-        ax.legend()
-        plt.show()
-
-    
-    def plot_curves(self, curve_to_plot: str | None = None) -> None:
-        '''Plot power prices stored in curve_dict. The x coordinates are auto formatted.'''
-        fig, ax = plt.subplots()
-        if curve_to_plot is None:
-            for key, prices in self.curve_dict.items():
-                ax.plot(prices['datetime'], prices['power_prices'], label=key)
-
-
-        else:
-            prices = self.curve_dict[curve_to_plot]
-            ax.plot(prices['datetime'], prices['power_prices'], label=curve_to_plot)
-        locator = mdates.AutoDateLocator()
-        formatter = mdates.AutoDateFormatter(locator)
-
-        ax.xaxis.set_major_locator(locator)
-        ax.xaxis.set_major_formatter(formatter)
-        ax.set_xlabel('Date')
-        ax.set_ylabel('Price (£/MWh)')
-        fig.autofmt_xdate()
-        ax.legend()
-        plt.show()
-
-    @staticmethod
-    def _compute_stats(prices: pd.Series) -> dict[str,float]:
-        '''Compute summary statistics for a single price series.'''
-        return {
-            'max':    prices.max(),
-            'min':    prices.min(),
-            'std':    prices.std(),
-            'median': prices.median(),
-            'mean':   prices.mean()
-        }
-
     def analyse_curves(self) -> dict[str, dict[str, float]]:
         '''Return summary statistics for all stored price curves.'''
         return {
-            key: self._compute_stats(df['power_prices'])
+            key: compute_stats(df['power_prices'])
             for key, df in self.curve_dict.items()
         }
 
@@ -251,10 +206,10 @@ if __name__=='__main__':
                                      save_as_csv=True,
                                      filepath='price_curve_data')
 
-    pp.generate_price_curve('2026-01-01', '2026-01-08')
+    pp.generate_price_curve('2026-01-01', '2026-01-08', save_as_csv=True)
     pp.generate_price_curve('2026-01-01', '2026-01-09')
-    pp.plot_curves()
-    pp._compute_stats
+    plot_curves(r'2026_4_1_22_10_31_117881_synthetic_prices.csv')
+
 
 
 
