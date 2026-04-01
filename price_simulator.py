@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from utils import save_to_csv, generate_filepath, generate_filename
+
 
 class PowerPrices:
     """Generate realistic synthetic wholesale power prices"""
@@ -106,35 +108,35 @@ class PowerPrices:
                     + ou_cfg['sigma_mult'] * det_curve[t]/np.mean(det_curve) * dw[t])
         return x
 
-    @staticmethod
-    def save_to_csv(df: pd.DataFrame, filepath: str | None = None, filename: str | None = None) -> None:
+    # @staticmethod
+    # def save_to_csv(df: pd.DataFrame, filepath: str | None = None, filename: str | None = None) -> None:
 
-        '''Save power curves to csv.'''
-        full_file_path=PowerPrices.generate_filepath(filepath, filename)
-        df.to_csv(full_file_path)
+    #     '''Save power curves to csv.'''
+    #     full_file_path=generate_filepath(filepath, filename)
+    #     df.to_csv(full_file_path)
 
-    @staticmethod
-    def generate_filepath(filepath: str | None, filename: str | None) -> Path:
-        '''Generate filepath for csv saving'''
-        filename = PowerPrices.generate_filename(filename)
-        if filepath is not None:
-            full_file_path=Path(filepath)/filename
-        else:
-            full_file_path=Path(filename)
-        return full_file_path
+    # @staticmethod
+    # def generate_filepath(filepath: str | None, filename: str | None) -> Path:
+    #     '''Generate filepath for csv saving'''
+    #     filename = PowerPrices.generate_filename(filename)
+    #     if filepath is not None:
+    #         full_file_path=Path(filepath)/filename
+    #     else:
+    #         full_file_path=Path(filename)
+    #     return full_file_path
 
-    @staticmethod
-    def generate_filename(filename: str | None) -> str:
-        '''Generate filename for saving curve to csv and as a key for a dictionary'''
-        if filename is None:
-            current_time=datetime.now()
-            filename=f'{current_time.year}_{current_time.month}_{current_time.day}_{current_time.hour}_{current_time.minute}_{current_time.second}_{current_time.microsecond}_synthetic_prices.csv'
-        return filename
+    # @staticmethod
+    # def generate_filename(filename: str | None) -> str:
+    #     '''Generate filename for saving curve to csv and as a key for a dictionary'''
+    #     if filename is None:
+    #         current_time=datetime.now()
+    #         filename=f'{current_time.year}_{current_time.month}_{current_time.day}_{current_time.hour}_{current_time.minute}_{current_time.second}_{current_time.microsecond}_synthetic_prices.csv'
+    #     return filename
 
     def generate_price_curve(self,
                          start_date: str,
                          end_date: str,
-                         save_to_csv: bool = False,
+                         save_as_csv: bool = False,
                          filepath: str | None = None,
                          filename: str | None = None) -> pd.DataFrame:
         '''Generate stochastic price curve'''
@@ -162,14 +164,33 @@ class PowerPrices:
 
         prices_df = pd.DataFrame(list(zip(ts, price_curve, strict=True)), columns=['datetime', 'power_prices'])
 
-        if save_to_csv:
-            self.save_to_csv(prices_df, filepath, filename)
+        if save_as_csv:
+            save_to_csv(prices_df, filepath, filename)
 
-        curve_name = PowerPrices.generate_filename(filename).removesuffix('.csv')
+        curve_name = generate_filename(filename).removesuffix('.csv')
         self.curve_dict[curve_name] = prices_df
-
+        
         return prices_df
 
+    @staticmethod
+    def cli_plot_curve(curve_path: str):
+        ''' Plot power curve stored in csv file. '''
+        price_df = pd.read_csv(curve_path)
+        fig, ax = plt.subplots()
+        filename = Path(curve_path).stem
+        ax.plot(price_df['datetime'], price_df['power_prices'], label=filename)
+        locator = mdates.AutoDateLocator()
+        formatter = mdates.AutoDateFormatter(locator)
+
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(formatter)
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Price (£/MWh)')
+        fig.autofmt_xdate()
+        ax.legend()
+        plt.show()
+
+    
     def plot_curves(self, curve_to_plot: str | None = None) -> None:
         '''Plot power prices stored in curve_dict. The x coordinates are auto formatted.'''
         fig, ax = plt.subplots()
@@ -210,6 +231,7 @@ class PowerPrices:
             for key, df in self.curve_dict.items()
         }
 
+
 if __name__=='__main__':
     custom_cfg = {
     "ou": {"theta": 7, "sigma_mult": 5},
@@ -218,7 +240,7 @@ if __name__=='__main__':
     pp = PowerPrices(config=custom_cfg)
     prices = pp.generate_price_curve('2026-01-01',
                                      '2026-01-08',
-                                     save_to_csv=True,
+                                     save_as_csv=True,
                                      filepath='price_curve_data')
 
     pp.generate_price_curve('2026-01-01', '2026-01-08')
@@ -226,12 +248,14 @@ if __name__=='__main__':
     pp = PowerPrices(config=custom_cfg)
     prices = pp.generate_price_curve('2026-01-01',
                                      '2026-01-08',
-                                     save_to_csv=True,
+                                     save_as_csv=True,
                                      filepath='price_curve_data')
 
     pp.generate_price_curve('2026-01-01', '2026-01-08')
     pp.generate_price_curve('2026-01-01', '2026-01-09')
     pp.plot_curves()
+    pp._compute_stats
+
 
 
 
