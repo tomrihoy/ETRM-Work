@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from utils import generate_filename, save_to_csv
-from plants import OutputFormat
+from dataclass_definitions import OutputFormat
 
 
 def compute_stats(prices: pd.Series) -> dict[str,float]:

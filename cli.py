@@ -2,7 +2,7 @@ import pandas as pd
 import typer
 
 from price_simulator import PowerPrices, compute_stats, plot_curves
-from plants import OutputFormat
+from dataclass_definitions import OutputFormat
 app = typer.Typer(help="Generate synthetic wholesale power prices")
 
 
