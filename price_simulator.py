@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from utils import generate_filename, save_to_csv
+from plants import OutputFormat
 
 
 def compute_stats(prices: pd.Series) -> dict[str,float]:
@@ -143,7 +144,7 @@ class PowerPrices:
     def generate_price_curve(self,
                          start_date: str,
                          end_date: str,
-                         save_as_csv: bool = False,
+                         output_format: OutputFormat = OutputFormat.STDOUT,
                          filepath: str | None = None,
                          filename: str | None = None) -> pd.DataFrame:
         '''Generate stochastic price curve'''
@@ -171,7 +172,7 @@ class PowerPrices:
 
         prices_df = pd.DataFrame(list(zip(ts, price_curve, strict=True)), columns=['datetime', 'power_prices'])
 
-        if save_as_csv:
+        if output_format is OutputFormat.CSV:
             save_to_csv(prices_df, filepath, filename)
 
         curve_name = generate_filename(filename).removesuffix('.csv')
@@ -193,22 +194,22 @@ if __name__=='__main__':
     "intraday": {"a_1": 12},
     }
     pp = PowerPrices(config=custom_cfg)
-    prices = pp.generate_price_curve('2026-01-01',
-                                     '2026-01-08',
-                                     save_as_csv=True,
-                                     filepath='price_curve_data')
+    # prices = pp.generate_price_curve('2026-01-01',
+    #                                  '2026-01-08',
+    #                                  save_as_csv=True,
+    #                                  filepath='price_curve_data')
 
-    pp.generate_price_curve('2026-01-01', '2026-01-08')
-    pp.generate_price_curve('2026-01-01', '2026-01-09')
-    pp = PowerPrices(config=custom_cfg)
-    prices = pp.generate_price_curve('2026-01-01',
-                                     '2026-01-08',
-                                     save_as_csv=True,
-                                     filepath='price_curve_data')
+    # pp.generate_price_curve('2026-01-01', '2026-01-08')
+    # pp.generate_price_curve('2026-01-01', '2026-01-09')
+    # pp = PowerPrices(config=custom_cfg)
+    # prices = pp.generate_price_curve('2026-01-01',
+    #                                  '2026-01-08',
+    #                                  save_as_csv=True,
+    #                                  filepath='price_curve_data')
 
-    pp.generate_price_curve('2026-01-01', '2026-01-08', save_as_csv=True)
+    pp.generate_price_curve('2026-01-01', '2026-01-08', output_format='csv')
     pp.generate_price_curve('2026-01-01', '2026-01-09')
-    plot_curves(r'2026_4_1_22_10_31_117881_synthetic_prices.csv')
+    #plot_curves(r'2026_4_1_22_10_31_117881_synthetic_prices.csv')
 
 
 
