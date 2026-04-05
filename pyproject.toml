@@ -1,0 +1,46 @@
+[project]
+name = "price-simulator"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.7"
+dependencies = [
+    "ipykernel>=7.2.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.8",
+    "mypy>=1.20.0",
+    "numpy>=2.4.4",
+    "pandas>=3.0.1",
+    "pandas-stubs>=3.0.0.260204",
+    "pytest>=9.0.2",
+    "ruff>=0.15.8",
+    "typer>=0.24.1",
+]
+
+[project.scripts]
+price-simulator = "cli:app"
+
+[tool.ruff]
+line-length = 88          # same default as Black
+target-version = "py311"  # match your requires-python
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors — basic style errors (indentation, whitespace, etc.)
+    "W",    # pycodestyle warnings — line length, blank lines, etc.
+    "F",    # pyflakes — undefined names, unused imports, unused variables
+    "B",    # flake8-bugbear — likely bugs and design issues, includes B006
+    "I",    # isort — import ordering and grouping
+    "UP",   # pyupgrade — flags outdated Python syntax (e.g. old-style string formatting)
+    "C4",   # flake8-comprehensions — unnecessary list/dict/set comprehensions
+    "SIM",  # flake8-simplify — suggests simpler code constructs
+    "N",    # pep8-naming — naming conventions (classes, functions, variables)
+]
+
+ignore = [
+    "E501",  # line too long — handled by formatter, not linter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"] # unused package imports acceptable in init file
+"cli.py" = ["B008"] #function calls acceptable in typer interface

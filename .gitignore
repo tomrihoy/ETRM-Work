@@ -4,3 +4,5 @@
 
 
 price_curve_data/*.csv
+
+*.csv
