@@ -74,7 +74,8 @@ class PowerPrices:
         "ou": {
             "dt": 1/48,
             "theta": 4.0,
-            "sigma_mult": 5
+            "sigma_mult": 5,
+            "seed":42,
         },
         "base_price": 70
     }
@@ -189,11 +190,11 @@ class PowerPrices:
 
 
 if __name__=='__main__':
-    custom_cfg = {
-    "ou": {"theta": 7, "sigma_mult": 5},
-    "intraday": {"a_1": 12},
-    }
-    pp = PowerPrices(config=custom_cfg)
+    # custom_cfg = {
+    # "ou": {"theta": 7, "sigma_mult": 5},
+    # "intraday": {"a_1": 12},
+    # }
+    # pp = PowerPrices(config=custom_cfg)
     # prices = pp.generate_price_curve('2026-01-01',
     #                                  '2026-01-08',
     #                                  save_as_csv=True,
@@ -207,10 +208,12 @@ if __name__=='__main__':
     #                                  save_as_csv=True,
     #                                  filepath='price_curve_data')
 
-    pp.generate_price_curve('2026-01-01', '2026-01-08', output_format='csv')
-    pp.generate_price_curve('2026-01-01', '2026-01-09')
-    #plot_curves(r'2026_4_1_22_10_31_117881_synthetic_prices.csv')
-
+    # pp.generate_price_curve('2026-01-01', '2026-01-08', output_format='csv')
+    # pp.generate_price_curve('2026-01-01', '2026-01-09')
+    # #plot_curves(r'2026_4_1_22_10_31_117881_synthetic_prices.csv')
+    pp = PowerPrices()    
+    x=pp.generate_price_curve('2026-01-01', '2026-01-07')
+    print(x.head(2), x.tail(2))
 
 
 
