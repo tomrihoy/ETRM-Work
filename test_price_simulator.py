@@ -156,7 +156,7 @@ class TestGeneratePriceCurve:
     def test_prices_are_numeric(self, one_week_prices):
         assert pd.api.types.is_float_dtype(one_week_prices['power_prices'])
 
-    def test_negative_prices_are_valid(self, pp):
+    def test_negative_prices_are_valid(self):
         # Run many curves and check negative prices can occur (not clipped)
         pp = PowerPrices(config={"ou": {"sigma_mult": 100}, "base_price": 10})
         prices = pd.concat([
@@ -169,6 +169,12 @@ class TestGeneratePriceCurve:
         p1 = pp.generate_price_curve('2026-01-01', '2026-01-07')['power_prices']
         p2 = pp.generate_price_curve('2026-01-01', '2026-01-07')['power_prices']
         assert not p1.equals(p2)
+
+    def test_two_calls_same_seed_produce_same_prices(self):
+        pp=PowerPrices(config={'ou':{'seed':42}})
+        p1 = pp.generate_price_curve('2026-01-01', '2026-01-07')['power_prices']
+        p2 = pp.generate_price_curve('2026-01-01', '2026-01-07')['power_prices']
+        assert p1.equals(p2)
 
     def test_invalid_date_range_raises_error(self, pp):
         with pytest.raises((ValueError, Exception)):

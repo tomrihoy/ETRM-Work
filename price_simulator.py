@@ -75,7 +75,7 @@ class PowerPrices:
             "dt": 1/48,
             "theta": 4.0,
             "sigma_mult": 5,
-            "seed":42,
+            "seed":None,
         },
         "base_price": 70
     }
@@ -135,7 +135,10 @@ class PowerPrices:
         n_steps = len(det_curve)
         x = np.zeros(n_steps)
         x[0] = det_curve[0]
-        dw = np.random.normal(0, np.sqrt(ou_cfg['dt']), size=n_steps)
+        seed = ou_cfg['seed']
+        rng = np.random.default_rng(seed)
+        
+        dw = rng.normal(0, np.sqrt(ou_cfg['dt']), size=n_steps)
         for t in range(1, n_steps):
             x[t] = (x[t-1]
                     + ou_cfg['theta'] * (det_curve[t]-x[t-1]) * ou_cfg['dt']
