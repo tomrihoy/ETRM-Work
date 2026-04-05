@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 from dataclass_definitions import Plant, FuelType, DispatchedPlant, DispatchedResult
 from dataclasses import replace
 
-def dispatch_merit_order(plants: list[Plant], demand_mw: np.ndarray):
+def dispatch_merit_order(plants: list[Plant], demand_mw: float)->DispatchedResult:
     
     sorted_uk_stack = sorted(plants, key = lambda p: p.marginal_cost)
 
     dispatched_plants = []
     remaining_demand = demand_mw
-    clearing_price = 0
+    clearing_price: float = 0
 
     for plant in sorted_uk_stack:
         if remaining_demand<=0:
@@ -31,7 +31,7 @@ def dispatch_merit_order(plants: list[Plant], demand_mw: np.ndarray):
     return dispatched_result
 
 
-def find_merit_order(plant_stack: list[Plant], demand: np.ndarray, wind_cf: np.ndarray):
+def find_merit_order(plant_stack: list[Plant], demand: np.ndarray, wind_cf: np.ndarray)->list[DispatchedResult]:
     dispatched_results = []
     for demand_val, wind_cf_val in zip(demand, wind_cf):
         adjusted_stack = [
