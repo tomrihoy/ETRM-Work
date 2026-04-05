@@ -104,9 +104,9 @@ class TestDispatchMeritOrderEdgeCases:
         assert result.clearing_price == 0.0
 
     def test_total_cost_is_correct(self, simple_stack):
-        # Nuclear 50 MW @ £10, OCGT 30 MW @ £90
+        # Nuclear 50 MW + OCGT 30 MW, both paid at clearing price of £90
         result = dispatch_merit_order(simple_stack, 80.0)
-        expected_cost = 50.0 * 10.0 + 30.0 * 90.0
+        expected_cost = 80.0 * 90.0  # total dispatched MW * clearing price
         assert result.total_cost == pytest.approx(expected_cost)
 
     def test_single_plant_stack(self):
