@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from utils import generate_filename, save_to_csv
 from dataclass_definitions import OutputFormat
+from utils import generate_filename, save_to_csv
 
 
 def compute_stats(prices: pd.Series) -> dict[str,float]:
@@ -137,7 +137,7 @@ class PowerPrices:
         x[0] = det_curve[0]
         seed = ou_cfg['seed']
         rng = np.random.default_rng(seed)
-        
+
         dw = rng.normal(0, np.sqrt(ou_cfg['dt']), size=n_steps)
         for t in range(1, n_steps):
             x[t] = (x[t-1]
@@ -214,7 +214,7 @@ if __name__=='__main__':
     # pp.generate_price_curve('2026-01-01', '2026-01-08', output_format='csv')
     # pp.generate_price_curve('2026-01-01', '2026-01-09')
     # #plot_curves(r'2026_4_1_22_10_31_117881_synthetic_prices.csv')
-    pp = PowerPrices()    
+    pp = PowerPrices()
     x=pp.generate_price_curve('2026-01-01', '2026-01-07')
     print(x.head(2), x.tail(2))
 

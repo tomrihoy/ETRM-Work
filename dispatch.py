@@ -1,10 +1,13 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from dataclass_definitions import Plant, FuelType, DispatchedPlant, DispatchedResult
 from dataclasses import replace
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+from dataclass_definitions import DispatchedPlant, DispatchedResult, FuelType, Plant
+
+
 def dispatch_merit_order(plants: list[Plant], demand_mw: float)->DispatchedResult:
-    
+
     sorted_uk_stack = sorted(plants, key = lambda p: p.marginal_cost)
 
     dispatched_plants = []
@@ -18,14 +21,14 @@ def dispatch_merit_order(plants: list[Plant], demand_mw: float)->DispatchedResul
         dispatched_mw = min(plant.capacity_mw, remaining_demand)
 
         dispatched_plants.append(DispatchedPlant(plant=plant, dispatched_mw=dispatched_mw))
-        
+
         remaining_demand -=dispatched_mw
         clearing_price = plant.marginal_cost
-    
+
     dispatched_mw = sum(dp.dispatched_mw for dp in dispatched_plants)
     total_cost = dispatched_mw*clearing_price
 
-    
+
     dispatched_result = DispatchedResult(dispatched_plants, clearing_price, remaining_demand, total_cost)
 
     return dispatched_result
@@ -33,7 +36,7 @@ def dispatch_merit_order(plants: list[Plant], demand_mw: float)->DispatchedResul
 
 def find_merit_order(plant_stack: list[Plant], demand: np.ndarray, wind_cf: np.ndarray)->list[DispatchedResult]:
     dispatched_results = []
-    for demand_val, wind_cf_val in zip(demand, wind_cf):
+    for demand_val, wind_cf_val in zip(demand, wind_cf, strict=True):
         adjusted_stack = [
         replace(plant, capacity_mw=plant.capacity_mw * wind_cf_val)
         if plant.fuel_type == FuelType.WIND
@@ -57,19 +60,19 @@ if __name__=='__main__':
     Plant("OCGT 3", FuelType.OCGT, 10, 96)]
 
     def generate_autocorrelated(n: int, phi: float = 0.95, seed: int | None = None) -> np.ndarray:
-        
+
         rng = np.random.default_rng(seed)
-        
+
         noise = rng.normal(0, 1, n)
         series = np.zeros(n)
         series[0] = noise[0]
-        
+
         for i in range(1, n):
             series[i] = phi * series[i-1] + np.sqrt(1 - phi**2) * noise[i]
-        
+
         # Normalise to [0, 1]
         series = (series - series.min()) / (series.max() - series.min())
-        
+
         return series
 
     x=np.arange(1,49)

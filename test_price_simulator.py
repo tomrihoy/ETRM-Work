@@ -1,8 +1,8 @@
-import pytest
 import numpy as np
 import pandas as pd
-from price_simulator import PowerPrices, compute_stats, settlement_period
+import pytest
 
+from price_simulator import PowerPrices, compute_stats, settlement_period
 
 # ── Fixtures ────────────────────────────────────────────────────────────────
 

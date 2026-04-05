@@ -42,4 +42,5 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]  # ignore unused imports in __init__.py (common for re-exports)
+"__init__.py" = ["F401"] # unused package imports acceptable in init file
+"cli.py" = ["B008"] #function calls acceptable in typer interface
