@@ -1,8 +1,8 @@
-import numpy as np
 import pytest
-
-from dataclass_definitions import DispatchedPlant, DispatchedResult, FuelType, Plant
+import numpy as np
+from dataclass_definitions import Plant, FuelType, DispatchedPlant, DispatchedResult
 from dispatch import dispatch_merit_order, find_merit_order
+
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
